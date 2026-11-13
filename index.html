@@ -1,0 +1,520 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BiBiFilm</title>
+  <link rel="icon" type="image/png" href="assets/icons/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+    <!-- Sidebar -->
+    <nav class="sidebar" role="navigation" aria-label="Главная навигация">
+      <a href="index.html" class="sidebar__logo" aria-label="BiBiFilm — главная">
+        <img src="assets/icons/icon.png" alt="" loading="lazy">
+      </a>
+
+      <div class="sidebar__nav">
+        <a href="index.html" class="nav-item nav-item--active" title="Главная" aria-label="Главная" aria-current="page">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        </a>
+
+        <a href="#" class="nav-item" title="Категории" aria-label="Категории">
+          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM8 15c0-1.66 1.34-3 3-3s3 1.34 3 3-3-1.34-3-3z"/></svg>
+        </a>
+
+        <a href="#" class="nav-item" title="Моя библиотека" aria-label="Моя библиотека">
+          <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v14zM8 15c0-1.66 1.34-3 3-3s3 1.34 3 3-3-1.34-3-3z"/></svg>
+        </a>
+
+        <a href="Register.html" class="nav-item" id="authNavLink" title="Войти / Регистрация" aria-label="Войти или зарегистрироваться">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        </a>
+
+        <a href="#" class="nav-item" id="logoutNavLink" title="Выйти" aria-label="Выйти из аккаунта" style="display: none;" onclick="logout()">
+          <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        </a>
+      </div>
+
+      <div class="sidebar__user">
+        <a href="Profile.html" class="user-avatar" id="sidebarAvatar" title="Профиль" aria-label="Профиль">Б</a>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content" role="main">
+      <div class="container">
+        <!-- Hero Banner (генерируется из heroConfig) -->
+        <section class="hero" id="heroSection" aria-labelledby="hero-title"></section>
+
+        <!-- Continue Watching (динамическая, из localStorage) -->
+        <section class="section" id="continueSection" style="display: none;" aria-labelledby="continue-title">
+          <div class="section__header">
+            <h2 class="section__title" id="continue-title">Продолжить просмотр</h2>
+          </div>
+          <div class="rail-wrapper">
+            <button class="rail-nav rail-nav--prev" aria-label="Назад" onclick="scrollRail('continueRail', -1)" title="Назад">
+              <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            <div class="rail" id="continueRail" role="list"></div>
+            <button class="rail-nav rail-nav--next" aria-label="Вперёд" onclick="scrollRail('continueRail', 1)" title="Вперёд">
+              <svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- Секции из data.js (рендерятся автоматически) -->
+        <div id="sectionsContainer"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Video Modal -->
+  <div class="modal" id="videoModal" role="dialog" aria-modal="true" aria-label="Видеоплеер" onclick="closePlayer()">
+    <div class="modal__backdrop"></div>
+    <div class="modal__content">
+      <button class="modal__close" onclick="closePlayer()" aria-label="Закрыть плеер">×</button>
+      <video class="modal__video" id="mainPlayer" controls playsinline></video>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Data & App Scripts -->
+  <script>
+    // ==========================================
+    // BiBiFilm — CONFIG (EDIT HERE)
+    // ==========================================
+    // ═══════════════════════════════════════════
+    // ПУТИ К АССЕТАМ (меняй если переместил папки)
+    // ═══════════════════════════════════════════
+    const VIDEOS = 'assets/videos/';
+    const PHOTOS = 'assets/photos/';
+
+    // ═══════════════════════════════════════════
+    // ГЛАВНЫЙ БАННЕР (Hero) — меняй под свой фильм
+    // ═══════════════════════════════════════════
+    const heroConfig = {
+      title: 'Бизнес-план «Биби»',
+      subtitle: 'Рекомендуемое',
+      ageRating: '0+',
+      quality: 'HD',
+      description: 'Энергичная кошечка Биби устраивается пекарем. В первый же день к ней приходят два кота и заказывают два пирога. Не устояв перед потрясающим ароматом, Биби прямо на глазах у обманутых клиентов съедает оба заказа сама.',
+      poster: PHOTOS + 'cover1.png',
+      video: VIDEOS + 'film1.mov',
+      btnText: 'Смотреть'
+    };
+
+    // ═══════════════════════════════════════════
+    // СЕКЦИИ НА ГЛАВНОЙ — ДОБАВЛЯЙ/УДАЛЯЙ ФИЛЬМЫ ЗДЕСЬ
+    // ═══════════════════════════════════════════
+    // Каждый item = { id, title, video, poster, quality }
+    // id: уникальный (film1, film2... ep1, ep2... bp1, work1...)
+    // title: название на карточке
+    // video: путь к файлу (VIDEOS + 'имя_файла')
+    // poster: путь к обложке (PHOTOS + 'имя_файла') или '' если нет
+    // quality: 'HD' / '4K' / '' — значок качества на карточке
+    // ═══════════════════════════════════════════
+    const sectionsConfig = [
+      {
+        id: 'movies',
+        title: 'Фильмы',
+        type: 'movies',
+        items: [
+          { id: 'film1', title: 'Бизнес-план «Биби»', video: VIDEOS + 'film1.mov', poster: PHOTOS + 'cover1.png', quality: '1 Сезон 1 Серия' },
+          { id: 'film2', title: 'Трагедия Генератора', video: VIDEOS + 'film2.mov', poster: PHOTOS + 'cover2.png', quality: '1 Сезон 2 Серия' },
+          { id: 'film3', title: 'Новый Бассейн', video: VIDEOS + 'film3.mp4', poster: PHOTOS + 'cover3.png', quality: '1 Сезон 3 Серия' },
+          { id: 'film4', title: 'Лучший Пылесос', video: VIDEOS + 'film4.mov', poster: PHOTOS + 'cover4.png', quality: '1 Сезон 4 Серия' },
+          { id: 'film5', title: 'Крутая Тачка', video: VIDEOS + 'film5.mov', poster: PHOTOS + 'cover5.png', quality: '1 Сезон 5 Серия' },
+          { id: 'film6', title: 'ЛЕТНИЙ КУРОРТ', video: VIDEOS + 'film6.mov', poster: PHOTOS + 'cover6.png', quality: '1 Сезон 6 Серия' },
+          { id: 'film7', title: 'Неожиданная Посылка', video: VIDEOS + 'film7.mp4', poster: PHOTOS + 'cover7.png', quality: '1 Сезон 7 Серия' },
+          { id: 'film8', title: 'Батут Мечты', video: VIDEOS + 'film8.mp4', poster: PHOTOS + 'cover8.png', quality: '1 Сезон 8 Серия' },
+          { id: 'film9', title: 'Шашлыки', video: VIDEOS + 'film9.mp4', poster: PHOTOS + 'cover9.png', quality: '1 Сезон 9 Серия' },
+          { id: 'film10', title: 'Биби и Мебель', video: VIDEOS + 'film10.mp4', poster: PHOTOS + 'cover10.png', quality: '1 Сезон 10 Серия' },
+          { id: 'film11', title: 'Лучшее День Рождения', video: VIDEOS + 'film11.mp4', poster: PHOTOS + 'cover11.png', quality: '1 Сезон 11 Серия' },
+          { id: 'film12', title: 'Планшет и Котята', video: VIDEOS + 'film12.mp4', poster: PHOTOS + 'cover12.jpg', quality: '1 Сезон 12 Серия (From Youtube)' },
+          { id: 'film13', title: 'Гонки во сне', video: VIDEOS + 'film13.mp4', poster: PHOTOS + 'cover13.jpg', quality: '1 Сезон 13 Серия (From Youtube)' },
+          { id: 'film14', title: 'Как снимаются мультики?', video: VIDEOS + 'film14.mp4', poster: PHOTOS + 'cover14.jpg', quality: '1 Сезон 14 Серия' },
+          { id: 'film15', title: 'Покорение вершины', video: VIDEOS + 'film15.mp4', poster: PHOTOS + 'cover15.jpg', quality: '1 Сезон 15 Серия' },
+          { id: 'film16', title: 'Обратно в школу!', video: VIDEOS + 'film16.mp4', poster: PHOTOS + 'cover16.jpg', quality: '2 Сезон 1 Серия' },
+          { id: 'film17', title: 'Мой первый робот', video: VIDEOS + 'film17.mp4', poster: PHOTOS + 'cover17.png', quality: '2 Сезон 2 Серия' },
+          { id: 'film18', title: 'Большой зимний переезд', video: VIDEOS + 'film18.mp4', poster: PHOTOS + 'cover18.png', quality: '2 Сезон 3 Серия' },
+          // ДОБАВЛЯЙ НОВЫЕ ФИЛЬМЫ ВЫШЕ ЭТОЙ СТРОКИ:
+          // { id: 'film12', title: 'Название', video: VIDEOS + 'film12.mov', poster: PHOTOS + 'cover12.png', quality: 'HD' },
+        ]
+      },
+      {
+        id: 'episodes',
+        title: 'Эпизоды',
+        type: 'episodes',
+        items: [
+          { id: 'ep1', title: 'Эпизод 1', video: VIDEOS + 'episode1.mov', poster: '' },
+          { id: 'ep2', title: 'Эпизод 2', video: VIDEOS + 'episode2.mov', poster: '' },
+          { id: 'ep2alt', title: 'Эпизод 2 (Альт. версия)', video: VIDEOS + 'episode2anotherv.mov', poster: '' },
+          { id: 'ep3', title: 'Эпизод 3', video: VIDEOS + 'episode3.mov', poster: '' },
+          { id: 'ep4', title: 'Эпизод 4', video: VIDEOS + 'episode4.mov', poster: '' },
+          // ДОБАВЛЯЙ ЭПИЗОДЫ ВЫШЕ:
+        ]
+      },
+      {
+        id: 'badphones',
+        title: 'Badphones',
+        type: 'custom',
+        items: [
+          { id: 'bp1', title: 'Badphones 1', video: VIDEOS + 'badphone1.mp4', poster: PHOTOS + 'badcover1.png', quality: 'HD' },
+          { id: 'bp2', title: 'Badphones 2', video: VIDEOS + 'badphone2.mp4', poster: PHOTOS + 'badcover2.png', quality: 'HD' },
+          // ДОБАВЛЯЙ BADPHONES ВЫШЕ:
+        ]
+      },
+      {
+        id: 'work',
+        title: 'Работа',
+        type: 'custom',
+        items: [
+          { id: 'work1', title: 'Работа 1', video: VIDEOS + 'work1.mov', poster: PHOTOS + 'workcover1.png', quality: 'HD' },
+          { id: 'work2', title: 'Работа 2', video: VIDEOS + 'work2.mov', poster: PHOTOS + 'workcover2.png', quality: 'HD' },
+          // ДОБАВЛЯЙ РАБОТЫ ВЫШЕ:
+        ]
+      }
+      // ХОЧЕШЬ НОВУЮ СЕКЦИЮ? КОПИРУЙ БЛОК ВЫШЕ И МЕНЯЙ id/title/items
+    ];
+
+    const videoTitles = {
+      'assets/videos/film1.mov': 'Бизнес-план «Биби»',
+      'assets/videos/film2.mov': 'Фильм 2',
+      'assets/videos/film3.mp4': 'Фильм 3',
+      'assets/videos/film4.mov': 'Фильм 4',
+      'assets/videos/film5.mov': 'Фильм 5',
+      'assets/videos/film6.mov': 'Фильм 6',
+      'assets/videos/film7.mp4': 'Фильм 7',
+      'assets/videos/film8.mp4': 'Фильм 8',
+      'assets/videos/film9.mp4': 'Фильм 9',
+      'assets/videos/film10.mp4': 'Фильм 10',
+      'assets/videos/film11.mp4': 'Фильм 11',
+      'assets/videos/episode1.mov': 'Эпизод 1',
+      'assets/videos/episode2.mov': 'Эпизод 2',
+      'assets/videos/episode2anotherv.mov': 'Эпизод 2 (Альт.)',
+      'assets/videos/episode3.mov': 'Эпизод 3',
+      'assets/videos/episode4.mov': 'Эпизод 4',
+      'assets/videos/badphone1.mp4': 'Badphones 1',
+      'assets/videos/badphone2.mp4': 'Badphones 2',
+      'assets/videos/work1.mov': 'Работа 1',
+      'assets/videos/work2.mov': 'Работа 2',
+    };
+
+    const playerConfig = {
+      completionThreshold: 95,
+      minWatchTime: 3,
+      autoplay: true,
+    };
+
+    function getVideoTitle(videoSrc) {
+      return videoTitles[videoSrc] || videoSrc.split('/').pop().replace(/\.[^.]+$/, '');
+    }
+
+    function formatTime(sec) {
+      if (!sec || sec < 0) return '0:00';
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = Math.floor(sec % 60);
+      return h > 0
+        ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+        : `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    // Авто-генерация плоского массива всех видео
+    const allVideos = sectionsConfig.flatMap(section =>
+      section.items.map(item => ({
+        ...item,
+        sectionId: section.id,
+        sectionTitle: section.title
+      }))
+    );
+
+    // ==========================================
+    // BiBiFilm — Main App (index.html)
+    // ==========================================
+    const STORAGE_KEY = 'video_watch_history';
+    const modal = document.getElementById('videoModal');
+    const player = document.getElementById('mainPlayer');
+    let currentMedia = null;
+
+    // ----- INIT -----
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHero();
+      renderSections();
+      renderContinueWatching();
+      enableRailScroll();
+      observeRailScroll();
+      updateAuthNav();
+    });
+
+    // ----- HERO -----
+    function renderHero() {
+      const hero = document.getElementById('heroSection');
+      hero.style.backgroundImage = `url('${heroConfig.poster}')`;
+      hero.innerHTML = `
+        <div class="hero__content">
+          <span class="hero__badge">${heroConfig.subtitle}</span>
+          <h1 class="hero__title" id="hero-title">${heroConfig.title}</h1>
+          <div class="hero__meta">
+            <span>${heroConfig.year}</span>
+            <span class="badge badge--age">${heroConfig.ageRating}</span>
+            <span class="badge badge--quality">${heroConfig.quality}</span>
+          </div>
+          <p class="hero__description">${heroConfig.description}</p>
+          <div class="hero__actions">
+            <button class="btn btn--primary btn--lg" onclick="openPlayer('${heroConfig.video}', '${heroConfig.poster}')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              ${heroConfig.btnText}
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    // ----- SECTIONS -----
+    function renderSections() {
+      const container = document.getElementById('sectionsContainer');
+      container.innerHTML = sectionsConfig.map(section => `
+        <section class="section" aria-labelledby="${section.id}-title">
+          <div class="section__header">
+            <h2 class="section__title" id="${section.id}-title">${section.title}</h2>
+          </div>
+          <div class="rail-wrapper">
+            <button class="rail-nav rail-nav--prev" aria-label="Назад" onclick="scrollRail('rail-${section.id}', -1)" title="Назад">
+              <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            <div class="rail" role="list" id="rail-${section.id}">
+              ${section.items.map(item => renderCard(item, section.id)).join('')}
+            </div>
+            <button class="rail-nav rail-nav--next" aria-label="Вперёд" onclick="scrollRail('rail-${section.id}', 1)" title="Вперёд">
+              <svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+            </button>
+          </div>
+        </section>
+      `).join('');
+    }
+
+    // ----- CARD TEMPLATE -----
+    function renderCard(item, sectionId) {
+      const hasPoster = !!item.poster;
+      const bgStyle = hasPoster ? `background-image: url('${item.poster}');` : '';
+      const placeholderClass = hasPoster ? '' : 'card__media--placeholder';
+      const metaParts = [];
+      if (item.quality) metaParts.push(item.quality);
+      const metaHtml = metaParts.length ? `<div class="card__meta"><span>${metaParts.join(' • ')}</span></div>` : '';
+
+      return `
+        <article class="rail__item card" role="listitem" data-video-src="${item.video}" onclick="openPlayer('${item.video}', '${item.poster || ''}')">
+          <div class="card__media ${placeholderClass}" style="${bgStyle}">
+            <button class="card__play-btn" aria-label="Смотреть" tabindex="-1">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+          </div>
+          <div class="card__content">
+            <h3 class="card__title">${item.title}</h3>
+            ${metaHtml}
+          </div>
+        </article>
+      `;
+    }
+
+    // ----- CONTINUE WATCHING -----
+    function getWatchHistory() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
+      catch { return {}; }
+    }
+
+    function renderContinueWatching() {
+      const history = getWatchHistory();
+      const section = document.getElementById('continueSection');
+      const rail = document.getElementById('continueRail');
+      const items = Object.values(history).sort((a, b) => b.timestamp - a.timestamp);
+
+      if (items.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      rail.innerHTML = items.slice(0, 10).map(item => {
+        const hasPoster = !!item.posterSrc;
+        const bgStyle = hasPoster ? `background-image: url('${item.posterSrc}');` : '';
+        const placeholderClass = hasPoster ? '' : 'card__media--placeholder';
+        const isCompleted = item.progress >= playerConfig.completionThreshold;
+        const progressBar = !isCompleted
+          ? `<div class="card__progress" style="width: ${item.progress}%;"></div>`
+          : `<div class="card__progress card__progress--complete" style="width: 100%;"></div>`;
+        const titleText = isCompleted ? 'Просмотрено' : `Продолжить с ${formatTime(item.currentTime)}`;
+
+        return `
+          <article class="rail__item card" role="listitem" data-video-src="${item.videoSrc}" onclick="openPlayer('${item.videoSrc}', '${item.posterSrc || ''}', ${item.currentTime})">
+            <div class="card__media ${placeholderClass}" style="${bgStyle}"></div>
+            <div class="card__play"><div class="card__play-btn"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div></div>
+            ${progressBar}
+            <div class="card__content">
+              <h3 class="card__title">${titleText}</h3>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      // Update nav buttons visibility for continue watching
+      updateRailNav('continueRail');
+    }
+
+    // ----- RAIL SCROLL / NAV -----
+    function enableRailScroll() {
+      // Mouse wheel scroll (optional, keep for trackpad users)
+      document.querySelectorAll('.rail').forEach(rail => {
+        rail.addEventListener('wheel', (e) => {
+          if (e.deltaY !== 0) {
+            e.preventDefault();
+            rail.scrollLeft += e.deltaY * 1.5;
+          }
+        }, { passive: false });
+      });
+    }
+
+    function scrollRail(railId, direction) {
+      const rail = document.getElementById(railId);
+      if (!rail) return;
+      const cardWidth = 260 + 16; // card width + gap
+      rail.scrollBy({ left: direction * cardWidth * 3, behavior: 'smooth' });
+      // Update nav buttons after scroll
+      setTimeout(() => updateRailNav(railId), 350);
+    }
+
+    function updateRailNav(railId) {
+      const rail = document.getElementById(railId);
+      if (!rail) return;
+      const wrapper = rail.closest('.rail-wrapper');
+      if (!wrapper) return;
+      const prevBtn = wrapper.querySelector('.rail-nav--prev');
+      const nextBtn = wrapper.querySelector('.rail-nav--next');
+      if (prevBtn) prevBtn.style.display = rail.scrollLeft > 10 ? 'flex' : 'none';
+      if (nextBtn) nextBtn.style.display = rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 10 ? 'flex' : 'none';
+    }
+
+    // Observe rail scroll to update nav buttons
+    function observeRailScroll() {
+      document.querySelectorAll('.rail').forEach(rail => {
+        rail.addEventListener('scroll', () => updateRailNav(rail.id));
+      });
+    }
+
+    // ----- PLAYER -----
+    function openPlayer(videoSrc, posterSrc, startTime = 0) {
+      currentMedia = { videoSrc, posterSrc };
+      player.src = videoSrc;
+      if (posterSrc) player.poster = posterSrc;
+      else player.removeAttribute('poster');
+
+      modal.classList.add('modal--open');
+      document.body.style.overflow = 'hidden';
+
+      if (startTime > 0) player.currentTime = startTime;
+      if (playerConfig.autoplay) player.play().catch(() => {});
+    }
+
+    player.addEventListener('timeupdate', () => {
+      if (currentMedia && player.duration) {
+        updateProgressBar(currentMedia.videoSrc, player.currentTime, player.duration);
+      }
+    });
+
+    function saveProgress(videoSrc, posterSrc, currentTime, duration) {
+      if (!duration || duration <= 0) return;
+      const history = getWatchHistory();
+      const progress = (currentTime / duration) * 100;
+      if (progress > playerConfig.completionThreshold || currentTime < playerConfig.minWatchTime) {
+        delete history[videoSrc];
+      } else {
+        history[videoSrc] = { videoSrc, posterSrc, currentTime, progress, timestamp: Date.now() };
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      renderContinueWatching();
+    }
+
+    function updateProgressBar(videoSrc, currentTime, duration) {
+      const progress = (currentTime / duration) * 100;
+      const card = document.querySelector(`#continueRail .card[data-video-src="${videoSrc}"]`);
+      if (card) {
+        const progressBar = card.querySelector('.card__progress');
+        const title = card.querySelector('.card__title');
+        if (progressBar) {
+          progressBar.style.width = `${Math.min(progress, 100)}%`;
+          if (progress >= playerConfig.completionThreshold) progressBar.classList.add('card__progress--complete');
+        }
+        if (title) {
+          title.textContent = progress >= playerConfig.completionThreshold ? 'Просмотрено' : `Продолжить с ${formatTime(currentTime)}`;
+        }
+      }
+    }
+
+    function closePlayer() {
+      if (currentMedia && player.duration) {
+        saveProgress(currentMedia.videoSrc, currentMedia.posterSrc, player.currentTime, player.duration);
+      }
+      player.pause();
+      player.src = '';
+      currentMedia = null;
+      modal.classList.remove('modal--open');
+      document.body.style.overflow = '';
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('modal--open')) closePlayer();
+    });
+
+    // ----- AUTH NAV -----
+    function updateAuthNav() {
+      const authLink = document.getElementById('authNavLink');
+      const logoutLink = document.getElementById('logoutNavLink');
+      const avatar = document.getElementById('sidebarAvatar');
+      const currentUser = localStorage.getItem('bibifilm_current_user');
+
+      if (currentUser) {
+        if (authLink) { authLink.href = 'Profile.html'; authLink.title = `Профиль (${currentUser})`; }
+        if (logoutLink) logoutLink.style.display = 'flex';
+        if (avatar) avatar.textContent = currentUser.charAt(0).toUpperCase();
+      } else {
+        if (authLink) { authLink.href = 'Register.html'; authLink.title = 'Войти / Регистрация'; }
+        if (logoutLink) logoutLink.style.display = 'none';
+        if (avatar) avatar.textContent = 'Б';
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('bibifilm_current_user');
+      window.location.href = 'Register.html';
+    }
+
+    // ----- TOAST -----
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast--${type === 'success' ? 'success' : type === 'error' ? 'error' : 'info'}`;
+      const icons = {
+        success: '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>',
+        error: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>',
+        info: '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-4h2v4zm0-10h-2V7h2v6z"/>'
+      };
+      toast.innerHTML = `
+        <svg class="toast__icon" viewBox="0 0 24 24">${icons[type === 'success' ? 'success' : type === 'error' ? 'error' : 'info']}</svg>
+        <span class="toast__message">${message}</span>
+        <button class="toast__close" aria-label="Закрыть"><svg width="18" height="18" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 19 17.59 13.41 12z"/></svg></button>
+      `;
+      toast.querySelector('.toast__close').onclick = () => toast.remove();
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 5000);
+    }
+  </script>
+</body>
+</html>
